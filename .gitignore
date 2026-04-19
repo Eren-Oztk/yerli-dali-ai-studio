@@ -1,0 +1,54 @@
+# ── Gizli bilgiler
+.env
+
+# ── Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+build/
+dist/
+*.egg-info/
+
+# ── Sanal ortam
+venv/
+.venv/
+env/
+
+# ── IDE
+.idea/
+.vscode/
+
+# ── Çıktı ve geçici dosyalar
+/out/
+/temp/
+/logs/
+/flagged/
+
+# ── Model ağırlıkları ve binary'ler (büyük dosyalar)
+*.pth
+*.onnx
+*.bin
+gfpgan/
+models/
+realesrgan-ncnn-vulkan.exe
+realesrgan-ncnn-vulkan-*/
+
+# ── Kullanıcı ve konfigürasyon verileri
+izinli_kullanicilar.json
+eski_paketler.txt
+
+# ── Görsel çıktılar
+*.jpg
+*.jpeg
+*.png
+*.webp
+!assets/**
+
+# ── Windows
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# ── macOS
+.DS_Store

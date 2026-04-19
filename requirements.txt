@@ -1,0 +1,41 @@
+# ─────────────────────────────────────────────
+#  Yerli Dali AI Studio — Bağımlılıklar
+#  Python 3.10 ile test edilmiştir.
+#
+#  Kurulum:
+#    pip install -r requirements.txt
+#
+#  PyTorch (GPU — CUDA 12.1):
+#    pip install torch==2.1.2 torchvision==0.16.2 --index-url https://download.pytorch.org/whl/cu121
+#
+#  PyTorch (CPU only — GPU yoksa):
+#    pip install torch==2.1.2 torchvision==0.16.2
+#
+#  NOT: PyTorch'u önceden kur, sonra bu dosyayı çalıştır.
+# ─────────────────────────────────────────────
+
+# ── Görsel işleme
+Pillow>=10.0.0,<11.0.0
+numpy>=1.24.0,<2.0.0          # numpy 2.x torch/basicsr ile uyumsuz — pinlenmiş!
+opencv-python>=4.8.0,<5.0.0
+
+# ── AI modelleri
+gfpgan>=1.3.8
+facexlib>=0.3.0
+basicsr>=1.4.2
+realesrgan>=0.3.0             # Python wrapper (opsiyonel, biz exe kullanıyoruz)
+
+# ── Web arayüzü
+gradio>=4.20.0,<5.0.0
+gradio-imageslider>=0.0.20
+
+# ── Telegram bot
+pyTelegramBotAPI>=4.17.0,<5.0.0
+
+# ── Konfigürasyon
+pydantic>=2.0.0,<3.0.0
+pydantic-settings>=2.0.0,<3.0.0
+python-dotenv>=1.0.0
+
+# ── Logging
+loguru>=0.7.0
