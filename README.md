@@ -1,5 +1,7 @@
 # 🎨 Yerli Dali AI Studio
 
+[![Live Demo](https://img.shields.io/badge/🌐_Canlı_Demo-GitHub_Pages-1f6feb?style=for-the-badge)](https://eren-oztk.github.io/yerli-dali-ai-studio/)
+
 **Real-ESRGAN + GFPGAN tabanlı, Telegram bot + Gradio GUI destekli görsel upscale sistemi.**
 
 Düşük çözünürlüklü görselleri yapay zeka ile 4x büyütür; opsiyonel GFPGAN yüz onarımı ve film grain efekti ekler.
