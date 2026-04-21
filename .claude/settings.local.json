@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir -p \"D:/PycharmProjects/pythonProject/yerli-dali-ai-studio/yerli-dali-ai-studio/docs\")",
+      "Bash(mkdir -p \"D:/PycharmProjects/pythonProject/yerli-dali-ai-studio/yerli-dali-ai-studio/.github/workflows\")",
+      "Bash(git config *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push *)"
+    ]
+  }
+}
