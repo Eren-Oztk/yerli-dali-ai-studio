@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Yerli Dali AI Studio - Live Simulation</title>
+  <title>Yerli Dali AI Studio</title>
+  <meta name="description" content="Real-ESRGAN + GFPGAN tabanlı yapay zeka ile görsel upscale sistemi. 4x büyütme, yüz onarımı, film grain, Telegram bot ve Gradio GUI." />
   <style>
     :root {
       --bg:      #080c10;
@@ -26,15 +27,12 @@
       color: var(--text);
       font-family: var(--mono);
       font-size: 14px;
-      padding: 40px 20px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+      line-height: 1.7;
       min-height: 100vh;
-      position: relative;
+      position: relative; /* Monitör hizalaması için */
     }
 
-    /* Scanline Efekti */
+    /* ── Scanline overlay ── */
     body::before {
       content: '';
       position: fixed;
@@ -50,20 +48,20 @@
       z-index: 9999;
     }
 
-    /* --- YENİ EKLENEN DONANIM MONİTÖRÜ CSS --- */
+    /* ── YENİ: Canlı Donanım Monitörü ── */
     .hw-monitor {
-      position: absolute;
+      position: fixed;
       top: 20px;
       right: 20px;
-      background: rgba(13, 17, 23, 0.8);
+      background: rgba(13, 17, 23, 0.85);
       border: 1px solid var(--border);
       padding: 12px 16px;
       border-radius: 8px;
       font-size: 12px;
       color: var(--muted);
       text-align: right;
-      backdrop-filter: blur(5px);
-      z-index: 100;
+      backdrop-filter: blur(8px);
+      z-index: 1000;
       box-shadow: 0 4px 12px rgba(0,0,0,0.5);
     }
     .hw-monitor .hw-row {
@@ -75,356 +73,858 @@
     .hw-monitor .hw-row:last-child { margin-bottom: 0; }
     .hw-val { font-weight: bold; font-family: var(--mono); color: var(--accent); transition: color 0.3s; }
 
-    .header {
+    /* ── Layout ── */
+    .container { max-width: 900px; margin: 0 auto; padding: 0 24px; }
+
+    /* ── Header ── */
+    header {
+      padding: 60px 0 40px;
       text-align: center;
-      margin-bottom: 40px;
-      margin-top: 20px;
+      position: relative;
     }
-    
-    .header h1 {
-      font-size: 32px;
+
+    .badge-row {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 32px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .5px;
+      text-transform: uppercase;
+      border: 1px solid;
+    }
+    .badge-blue   { color: var(--accent);  border-color: var(--accent);  background: rgba(88,166,255,.08); }
+    .badge-purple { color: var(--accent2); border-color: var(--accent2); background: rgba(188,140,255,.08); }
+    .badge-green  { color: var(--green);   border-color: var(--green);   background: rgba(63,185,80,.08); }
+    .badge-yellow { color: var(--yellow);  border-color: var(--yellow);  background: rgba(210,153,34,.08); }
+
+    .hero-title {
+      font-size: clamp(28px, 6vw, 52px);
+      font-weight: 800;
+      letter-spacing: -1px;
+      line-height: 1.15;
+      margin-bottom: 16px;
+    }
+
+    .hero-title .gradient {
       background: linear-gradient(135deg, var(--accent), var(--accent2));
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
     }
 
-    .dashboard {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 24px;
-      width: 100%;
-      max-width: 1000px;
+    .hero-sub {
+      color: var(--muted);
+      font-size: 15px;
+      max-width: 560px;
+      margin: 0 auto 36px;
     }
 
-    /* Gradio Panel Simülasyonu */
-    .panel {
+    .cta-row {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 22px;
+      border-radius: 6px;
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      transition: opacity .15s, transform .15s;
+      border: none;
+    }
+    .btn:hover { opacity: .85; transform: translateY(-1px); }
+    .btn-primary  { background: var(--accent);  color: #000; }
+    .btn-outline  { background: transparent; color: var(--text); border: 1px solid var(--border); }
+
+    /* ── Divider ── */
+    .divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border), transparent);
+      margin: 48px 0;
+    }
+
+    /* ── Terminal block ── */
+    .terminal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      margin: 32px 0;
+    }
+
+    .terminal-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px;
+      background: #161b22;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .dot { width: 12px; height: 12px; border-radius: 50%; }
+    .dot-red    { background: var(--red); }
+    .dot-yellow { background: var(--yellow); }
+    .dot-green  { background: var(--green); }
+
+    .terminal-title {
+      margin-left: 8px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .terminal-body {
+      padding: 20px 24px;
+      font-size: 13px;
+      line-height: 1.8;
+    }
+
+    .prompt::before { content: '$ '; color: var(--green); }
+    .comment  { color: var(--muted); }
+    .output   { color: var(--text); }
+    .success  { color: var(--green); }
+    .info     { color: var(--accent); }
+    .warn     { color: var(--yellow); }
+    .err      { color: var(--red); }
+    .hl       { color: var(--accent2); }
+
+    /* ── Feature grid ── */
+    section { margin: 48px 0; }
+
+    .section-label {
+      font-size: 11px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 20px;
+    }
+
+    .section-title {
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 32px;
+    }
+
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 16px;
+    }
+
+    .feature-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+      transition: border-color .2s;
+    }
+    .feature-card:hover { border-color: var(--accent); }
+
+    .feature-icon {
+      font-size: 22px;
+      margin-bottom: 10px;
+    }
+
+    .feature-name {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 6px;
+    }
+
+    .feature-desc {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    /* ── Pipeline ── */
+    .pipeline {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin: 32px 0;
+    }
+
+    .pipe-node {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 20px;
+      text-align: center;
+      min-width: 130px;
+    }
+
+    .pipe-node-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    .pipe-node-sub {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    .pipe-arrow {
+      font-size: 18px;
+      color: var(--muted);
+      padding: 0 8px;
+      flex-shrink: 0;
+    }
+
+    /* ── Config table ── */
+    .config-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    .config-table th {
+      text-align: left;
+      padding: 10px 14px;
+      color: var(--muted);
+      font-weight: 600;
+      border-bottom: 1px solid var(--border);
+      font-size: 11px;
+      letter-spacing: .5px;
+      text-transform: uppercase;
+    }
+
+    .config-table td {
+      padding: 10px 14px;
+      border-bottom: 1px solid #13181f;
+    }
+
+    .config-table tr:last-child td { border-bottom: none; }
+    .config-table tr:hover td { background: rgba(255,255,255,.02); }
+
+    .key { color: var(--accent2); }
+    .default { color: var(--green); }
+    .required-badge {
+      background: rgba(248,81,73,.15);
+      color: var(--red);
+      padding: 1px 7px;
+      border-radius: 3px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .5px;
+    }
+
+    /* ── Bot commands ── */
+    .cmd-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 10px;
+    }
+
+    .cmd-card {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      padding: 14px 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+
+    .cmd-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--green);
+      white-space: nowrap;
+    }
+
+    .cmd-desc {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 3px;
+    }
+
+    .cmd-admin {
+      font-size: 10px;
+      color: var(--yellow);
+      font-weight: 700;
+      letter-spacing: .5px;
+      text-transform: uppercase;
+    }
+
+    /* ── Arch diagram ── */
+    .arch {
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: 10px;
       padding: 24px;
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-
-    .panel-title {
-      font-size: 16px;
-      font-weight: bold;
-      color: var(--accent);
-      border-bottom: 1px solid var(--border);
-      padding-bottom: 10px;
-      margin-bottom: 10px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .image-preview {
-      width: 100%;
-      height: 250px;
-      border: 2px dashed var(--border);
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--muted);
-      overflow: hidden;
-      position: relative;
-      background: #161b22;
-      transition: filter 2s ease;
-    }
-
-    .image-preview.mock-blur {
-      background-image: repeating-linear-gradient(45deg, #1e2a38 25%, transparent 25%, transparent 75%, #1e2a38 75%, #1e2a38), repeating-linear-gradient(45deg, #1e2a38 25%, #161b22 25%, #161b22 75%, #1e2a38 75%, #1e2a38);
-      background-position: 0 0, 10px 10px;
-      background-size: 20px 20px;
-      filter: blur(8px);
-    }
-
-    .image-preview.mock-sharp {
-      background: url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1000&auto=format&fit=crop') center/cover;
-      filter: blur(0px);
-    }
-
-    .controls { display: flex; flex-direction: column; gap: 12px; }
-    
-    .control-group {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 13px;
-    }
-
-    select, input[type="range"] {
-      background: #161b22;
-      color: var(--text);
-      border: 1px solid var(--border);
-      padding: 4px 8px;
-      border-radius: 4px;
-      outline: none;
-      font-family: var(--mono);
-    }
-
-    .btn {
-      background: var(--accent);
-      color: #000;
-      border: none;
-      padding: 12px;
-      border-radius: 6px;
-      font-family: var(--mono);
-      font-weight: bold;
-      cursor: pointer;
-      transition: 0.2s;
-      margin-top: 10px;
-    }
-
-    .btn:hover:not(:disabled) { opacity: 0.8; transform: translateY(-2px); }
-    .btn:disabled { background: var(--muted); cursor: not-allowed; }
-
-    /* Terminal Panel */
-    .terminal-body {
-      background: #0d1117;
-      flex-grow: 1;
-      overflow-y: auto;
       font-size: 12px;
-      line-height: 1.6;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      height: 350px;
-      padding: 10px;
-      border-radius: 6px;
-      border: 1px solid #161b22;
+      line-height: 1.9;
+      overflow-x: auto;
+      white-space: pre;
     }
 
-    .log-line { animation: fadeIn 0.3s ease-in; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
-
-    .sys { color: var(--muted); }
-    .info { color: var(--accent); }
-    .success { color: var(--green); }
-    .warn { color: var(--yellow); }
-    .err { color: var(--red); }
-    .hl { color: var(--accent2); }
-
-    .progress-bar {
-      width: 100%;
-      height: 6px;
-      background: var(--border);
+    /* ── Troubleshoot ── */
+    .trouble-list { list-style: none; }
+    .trouble-list li {
+      padding: 14px 0;
+      border-bottom: 1px solid var(--border);
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 0 16px;
+    }
+    .trouble-list li:last-child { border-bottom: none; }
+    .trouble-q { color: var(--yellow); font-weight: 700; }
+    .trouble-a { color: var(--muted); font-size: 13px; margin-top: 4px; }
+    .trouble-a code {
+      background: #13181f;
+      padding: 1px 6px;
       border-radius: 3px;
-      margin-top: 10px;
-      overflow: hidden;
-      display: none;
-    }
-    .progress-fill {
-      height: 100%;
-      background: var(--accent);
-      width: 0%;
-      transition: width 0.3s;
+      color: var(--accent2);
     }
 
+    /* ── Footer ── */
+    footer {
+      margin-top: 80px;
+      padding: 32px 0;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .footer-brand { font-weight: 700; color: var(--accent); }
+    .footer-sub { font-size: 12px; color: var(--muted); }
+
+    footer a { color: var(--muted); text-decoration: none; }
+    footer a:hover { color: var(--text); }
+
+    /* ── Responsive ── */
     @media (max-width: 768px) {
-      .dashboard { grid-template-columns: 1fr; }
-      .hw-monitor { position: relative; top: 0; right: 0; width: 100%; text-align: center; margin-bottom: 20px; }
-      .hw-monitor .hw-row { justify-content: center; }
+      .pipe-node { min-width: 100px; padding: 10px 12px; }
+      .arch { font-size: 10px; }
+      /* YENİ: Mobilde monitörü sağ alta alıp küçültüyoruz ki doküman okumayı engellemesin */
+      .hw-monitor {
+        top: auto;
+        bottom: 20px;
+        right: 20px;
+        transform: scale(0.85);
+        transform-origin: bottom right;
+      }
+    }
+
+    /* ── Cursor blink ── */
+    @keyframes blink { 50% { opacity: 0; } }
+    .cursor {
+      display: inline-block;
+      width: 8px;
+      height: 15px;
+      background: var(--accent);
+      vertical-align: middle;
+      animation: blink 1.1s step-start infinite;
+      margin-left: 2px;
     }
   </style>
 </head>
 <body>
 
-  <div class="hw-monitor">
-    <div class="hw-row">
-      <span>GPU MODEL</span>
-      <span style="color: var(--text);">NVIDIA RTX 4090</span>
-    </div>
-    <div class="hw-row">
-      <span>VRAM ALLOC</span>
-      <span><span id="gpuVram" class="hw-val">3.2</span> <span style="font-size: 10px;">/ 24 GB</span></span>
-    </div>
-    <div class="hw-row">
-      <span>CORE TEMP</span>
-      <span><span id="gpuTemp" class="hw-val" style="color: var(--green);">45</span><span style="font-size: 10px;">°C</span></span>
-    </div>
+<div class="hw-monitor" id="hwMonitor">
+  <div class="hw-row">
+    <span>GPU MODEL</span>
+    <span style="color: var(--text);">NVIDIA RTX 4090</span>
   </div>
-
-  <div class="header">
-    <h1>Yerli Dali AI Studio</h1>
-    <p style="color: var(--muted);">Live Inference & GPU Queue Simulation</p>
+  <div class="hw-row">
+    <span>VRAM ALLOC</span>
+    <span><span id="gpuVram" class="hw-val">3.2</span> <span style="font-size: 10px;">/ 24 GB</span></span>
   </div>
+  <div class="hw-row">
+    <span>CORE TEMP</span>
+    <span><span id="gpuTemp" class="hw-val" style="color: var(--green);">45</span><span style="font-size: 10px;">°C</span></span>
+  </div>
+</div>
+<div class="container">
 
-  <div class="dashboard">
+  <header>
+    <div class="badge-row">
+      <span class="badge badge-blue">Python 3.10</span>
+      <span class="badge badge-purple">Real-ESRGAN</span>
+      <span class="badge badge-purple">GFPGAN</span>
+      <span class="badge badge-green">GPU Accelerated</span>
+      <span class="badge badge-yellow">Windows</span>
+    </div>
+
+    <h1 class="hero-title">
+      <span class="gradient">Yerli Dali</span><br>AI Studio
+    </h1>
+
+    <p class="hero-sub">
+      Real-ESRGAN + GFPGAN tabanlı yapay zeka ile görsel upscale.
+      4× büyütme · yüz onarımı · film grain · Telegram bot · Gradio GUI
+    </p>
+
+    <div class="cta-row">
+      <a class="btn btn-primary" href="https://github.com/Eren-Oztk/yerli-dali-ai-studio" target="_blank">
+        &#128196; GitHub'da İncele
+      </a>
+      <a class="btn btn-outline" href="https://github.com/Eren-Oztk/yerli-dali-ai-studio/archive/refs/heads/main.zip">
+        &#11015; ZIP İndir
+      </a>
+    </div>
+  </header>
+
+  <div class="divider"></div>
+
+  <section>
+    <p class="section-label">// hızlı başlangıç</p>
+    <h2 class="section-title">3 adımda çalıştır</h2>
+
+    <div class="terminal">
+      <div class="terminal-bar">
+        <div class="dot dot-red"></div>
+        <div class="dot dot-yellow"></div>
+        <div class="dot dot-green"></div>
+        <span class="terminal-title">cmd.exe — yerli-dali-ai-studio</span>
+      </div>
+      <div class="terminal-body">
+        <div class="comment"># 1. Repoyu klonla</div>
+        <div class="prompt">git clone https://github.com/Eren-Oztk/yerli-dali-ai-studio.git</div>
+        <div class="prompt">cd yerli-dali-ai-studio</div>
+        <br>
+        <div class="comment"># 2. Konfigürasyonu hazırla</div>
+        <div class="prompt">copy .env.example .env</div>
+        <div class="comment">#  → .env içine TELEGRAM_TOKEN ve BASE_DIR yaz</div>
+        <br>
+        <div class="comment"># 3. Başlat (ilk çalıştırmada bağımlılıkları kurar)</div>
+        <div class="prompt">scripts\baslat.bat</div>
+        <br>
+        <div class="success">✓ Telegram bot aktif</div>
+        <div class="success">✓ Gradio GUI → http://127.0.0.1:7860</div>
+        <div class="info">  GPU Worker kuyruğu hazır. Görsel bekliyor...<span class="cursor"></span></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <section>
+    <p class="section-label">// özellikler</p>
+    <h2 class="section-title">Ne yapıyor?</h2>
+
+    <div class="feature-grid">
+      <div class="feature-card">
+        <div class="feature-icon">🚀</div>
+        <div class="feature-name">Real-ESRGAN 4×</div>
+        <div class="feature-desc">NCNN-Vulkan tabanlı, GPU hızlandırmalı upscale. Gerçek fotoğraf, anime ve genel içerik modları.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">✨</div>
+        <div class="feature-name">GFPGAN Yüz Onarımı</div>
+        <div class="feature-desc">Bulanık, bozulmuş yüzleri stüdyo kalitesine taşır. GFPGANv1.4 modeli ile.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🎞</div>
+        <div class="feature-name">Film Grain</div>
+        <div class="feature-desc">Gerçek Gaussian gürültüsü ekleyerek aşırı netleştirilmiş yapay görünümü gizler.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🤖</div>
+        <div class="feature-name">Telegram Bot</div>
+        <div class="feature-desc">Görseli dosya olarak gönder, upscale'li halini al. Kalite kaybı yok.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🖥</div>
+        <div class="feature-name">Gradio Web UI</div>
+        <div class="feature-desc">Önce/sonra karşılaştırmalı tarayıcı arayüzü. Ayarları kaydırıcıyla değiştir.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">⚙️</div>
+        <div class="feature-name">GPU Kuyruğu</div>
+        <div class="feature-desc">Aynı anda yalnızca 1 işlem çalışır. VRAM taşması ve crash riski sıfır.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔒</div>
+        <div class="feature-name">İzin Sistemi</div>
+        <div class="feature-desc">Bot yalnızca yetkili Telegram kullanıcılarına yanıt verir. Admin komutlarıyla anlık yönetim.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🏗</div>
+        <div class="feature-name">Modüler Mimari</div>
+        <div class="feature-desc">Bot ve Gradio bağımsız thread. Biri çöksün diğeri çalışmaya devam eder.</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <section>
+    <p class="section-label">// nasıl çalışır</p>
+    <h2 class="section-title">İşlem hattı</h2>
+
+    <div class="pipeline">
+      <div class="pipe-node">
+        <div class="pipe-node-title">Giriş</div>
+        <div class="pipe-node-sub">Telegram / Gradio</div>
+      </div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-node">
+        <div class="pipe-node-title">GPU Queue</div>
+        <div class="pipe-node-sub">Sıralı erişim</div>
+      </div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-node">
+        <div class="pipe-node-title">Real-ESRGAN</div>
+        <div class="pipe-node-sub">4× upscale</div>
+      </div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-node">
+        <div class="pipe-node-title">GFPGAN</div>
+        <div class="pipe-node-sub">Yüz onarımı</div>
+      </div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-node">
+        <div class="pipe-node-title">Film Grain</div>
+        <div class="pipe-node-sub">Doğallaştır</div>
+      </div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-node">
+        <div class="pipe-node-title">Çıktı</div>
+        <div class="pipe-node-sub">PNG / geri gönder</div>
+      </div>
+    </div>
+
+    <pre class="arch"><span style="color:var(--muted)">┌─────────────────────────────────────────────┐
+│                  main.py                    │
+│       Logging · Settings · Boot             │
+└──────────────┬──────────────┬──────────────┘
+               │              │
+         daemon thread    ana thread
+               │              │
+   ┌───────────▼─────┐  ┌─────▼──────────────┐
+   │  <span style="color:var(--accent)">Telegram Bot</span>   │  │  <span style="color:var(--accent2)">Gradio Web UI</span>      │
+   │  bot.py         │  │  gradio_app.py     │
+   └───────────┬─────┘  └─────┬──────────────┘
+               │              │
+               └──────┬───────┘
+                      │  worker.submit()
+           ┌──────────▼──────────┐
+           │  <span style="color:var(--yellow)">GPU Worker Queue</span>  │
+           │  queue.Queue        │
+           │  tek thread         │
+           └──────────┬──────────┘
+                      │  engine.upscale()
+           ┌──────────▼──────────┐
+           │  <span style="color:var(--green)">Upscale Engine</span>    │
+           │  Real-ESRGAN EXE    │
+           │  + GFPGAN · Grain   │
+           └─────────────────────┘</span></pre>
+  </section>
+
+  <div class="divider"></div>
+
+  <section>
+    <p class="section-label">// gereksinimler</p>
+    <h2 class="section-title">Ne lazım?</h2>
+
+    <div class="terminal">
+      <div class="terminal-bar">
+        <div class="dot dot-red"></div>
+        <div class="dot dot-yellow"></div>
+        <div class="dot dot-green"></div>
+        <span class="terminal-title">sistem gereksinimleri</span>
+      </div>
+      <div class="terminal-body">
+        <div class="success">✓ Windows 10 / 11 (64-bit)</div>
+        <div class="success">✓ Python 3.10</div>
+        <div class="success">✓ NVIDIA GPU — CUDA 12.1 önerilir (RTX serisinde test edildi)</div>
+        <div class="success">✓ <span class="hl">realesrgan-ncnn-vulkan.exe</span> + models/ klasörü</div>
+        <div class="warn">~ GFPGANv1.4.pth — opsiyonel, yüz onarımı için</div>
+        <br>
+        <div class="comment"># Motor klasörü yapısı (BASE_DIR)</div>
+        <div class="output">D:\YerliDali\</div>
+        <div class="output">├── realesrgan-ncnn-vulkan.exe</div>
+        <div class="output">├── models\</div>
+        <div class="output">│   ├── realesrgan-x4plus.param</div>
+        <div class="output">│   ├── realesrgan-x4plus-anime.param</div>
+        <div class="output">│   └── realesr-animevideov3.param</div>
+        <div class="output">└── gfpgan\weights\GFPGANv1.4.pth  <span class="comment">← opsiyonel</span></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <section>
+    <p class="section-label">// konfigürasyon</p>
+    <h2 class="section-title">.env değişkenleri</h2>
+
+    <div class="terminal" style="overflow:auto">
+      <div class="terminal-bar">
+        <div class="dot dot-red"></div>
+        <div class="dot dot-yellow"></div>
+        <div class="dot dot-green"></div>
+        <span class="terminal-title">.env</span>
+      </div>
+      <table class="config-table" style="margin:0">
+        <thead>
+          <tr>
+            <th>Değişken</th>
+            <th>Varsayılan</th>
+            <th>Açıklama</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="key">TELEGRAM_TOKEN</span></td>
+            <td><span class="required-badge">ZORUNLU</span></td>
+            <td style="color:var(--muted)">BotFather'dan alınan bot token</td>
+          </tr>
+          <tr>
+            <td><span class="key">ADMIN_ID</span></td>
+            <td><span class="required-badge">ZORUNLU</span></td>
+            <td style="color:var(--muted)">Admin Telegram kullanıcı ID</td>
+          </tr>
+          <tr>
+            <td><span class="key">BASE_DIR</span></td>
+            <td><span class="default">D:/YerliDali</span></td>
+            <td style="color:var(--muted)">Motor ve model klasörü</td>
+          </tr>
+          <tr>
+            <td><span class="key">TILE_SIZE</span></td>
+            <td><span class="default">512</span></td>
+            <td style="color:var(--muted)">ESRGAN tile boyutu (128/256/512/1024)</td>
+          </tr>
+          <tr>
+            <td><span class="key">DEFAULT_SCALE</span></td>
+            <td><span class="default">4</span></td>
+            <td style="color:var(--muted)">Büyütme çarpanı</td>
+          </tr>
+          <tr>
+            <td><span class="key">DEFAULT_GRAIN</span></td>
+            <td><span class="default">0.10</span></td>
+            <td style="color:var(--muted)">Film grain yoğunluğu (0.0 – 0.30)</td>
+          </tr>
+          <tr>
+            <td><span class="key">DEFAULT_GFPGAN</span></td>
+            <td><span class="default">true</span></td>
+            <td style="color:var(--muted)">Yüz onarımı varsayılan açık</td>
+          </tr>
+          <tr>
+            <td><span class="key">MAX_QUEUE_SIZE</span></td>
+            <td><span class="default">50</span></td>
+            <td style="color:var(--muted)">Maksimum kuyruk uzunluğu</td>
+          </tr>
+          <tr>
+            <td><span class="key">WORKER_TIMEOUT</span></td>
+            <td><span class="default">300</span></td>
+            <td style="color:var(--muted)">İşlem zaman aşımı (saniye)</td>
+          </tr>
+          <tr>
+            <td><span class="key">GRADIO_PORT</span></td>
+            <td><span class="default">7860</span></td>
+            <td style="color:var(--muted)">Gradio web UI portu</td>
+          </tr>
+          <tr>
+            <td><span class="key">MAX_IMAGE_MB</span></td>
+            <td><span class="default">50.0</span></td>
+            <td style="color:var(--muted)">Maksimum görsel boyutu (MB)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <section>
+    <p class="section-label">// telegram bot</p>
+    <h2 class="section-title">Bot komutları</h2>
+
+    <div class="terminal" style="margin-bottom:24px">
+      <div class="terminal-bar">
+        <div class="dot dot-red"></div>
+        <div class="dot dot-yellow"></div>
+        <div class="dot dot-green"></div>
+        <span class="terminal-title">ipucu</span>
+      </div>
+      <div class="terminal-body">
+        <div class="warn">⚠ Görseli <strong>dosya/belge olarak</strong> gönder — photo olarak değil!</div>
+        <div class="comment">   Paperclip → Dosya Seç → görselini seç</div>
+        <div class="comment">   Photo olarak gönderilirse Telegram ~1280px'e sıkıştırır.</div>
+      </div>
+    </div>
+
+    <div class="cmd-grid">
+      <div class="cmd-card">
+        <div>
+          <div class="cmd-name">/start &nbsp;/help</div>
+          <div class="cmd-desc">Kullanım kılavuzunu gösterir</div>
+        </div>
+      </div>
+      <div class="cmd-card">
+        <div>
+          <div class="cmd-name">/photo</div>
+          <div class="cmd-desc">📸 Gerçek fotoğraf moduna geç</div>
+        </div>
+      </div>
+      <div class="cmd-card">
+        <div>
+          <div class="cmd-name">/anime</div>
+          <div class="cmd-desc">🎨 Karakalem / Anime moduna geç</div>
+        </div>
+      </div>
+      <div class="cmd-card">
+        <div>
+          <div class="cmd-name">/general</div>
+          <div class="cmd-desc">🎬 Genel / Video moduna geç</div>
+        </div>
+      </div>
+      <div class="cmd-card">
+        <div>
+          <div class="cmd-name">/model</div>
+          <div class="cmd-desc">Aktif modeli göster</div>
+        </div>
+      </div>
+      <div class="cmd-card">
+        <div>
+          <div class="cmd-name">/queue</div>
+          <div class="cmd-desc">Kuyruktaki iş sayısını göster</div>
+        </div>
+      </div>
+      <div class="cmd-card">
+        <div>
+          <div class="cmd-name">/adduser &lt;id&gt;</div>
+          <div class="cmd-desc">Kullanıcı ekle</div>
+          <div class="cmd-admin">Admin</div>
+        </div>
+      </div>
+      <div class="cmd-card">
+        <div>
+          <div class="cmd-name">/removeuser &lt;id&gt;</div>
+          <div class="cmd-desc">Kullanıcı çıkar</div>
+          <div class="cmd-admin">Admin</div>
+        </div>
+      </div>
+      <div class="cmd-card">
+        <div>
+          <div class="cmd-name">/listusers</div>
+          <div class="cmd-desc">Yetkili kullanıcı listesi</div>
+          <div class="cmd-admin">Admin</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <section>
+    <p class="section-label">// sorun giderme</p>
+    <h2 class="section-title">Sık sorulan sorunlar</h2>
+
+    <ul class="trouble-list">
+      <li>
+        <div>
+          <div class="trouble-q">Real-ESRGAN motoru bulunamadı</div>
+          <div class="trouble-a"><code>.env</code> içindeki <code>BASE_DIR</code> yolunu kontrol et. <code>realesrgan-ncnn-vulkan.exe</code> orada olmalı.</div>
+        </div>
+      </li>
+      <li>
+        <div>
+          <div class="trouble-q">TELEGRAM_TOKEN .env dosyasına yazılmamış</div>
+          <div class="trouble-a"><code>.env.example</code>'ı kopyalayıp <code>.env</code> oluştur ve token'ı doldur.</div>
+        </div>
+      </li>
+      <li>
+        <div>
+          <div class="trouble-q">numpy import hatası</div>
+          <div class="trouble-a"><code>pip install "numpy&lt;2"</code> ile düzelt. PyTorch bazen sürümü bozar.</div>
+        </div>
+      </li>
+      <li>
+        <div>
+          <div class="trouble-q">GFPGAN modeli indirilmiyor</div>
+          <div class="trouble-a">GitHub Releases'tan <code>GFPGANv1.4.pth</code> dosyasını manuel indir, <code>BASE_DIR/gfpgan/weights/</code> altına koy.</div>
+        </div>
+      </li>
+      <li>
+        <div>
+          <div class="trouble-q">Gradio'ya dışarıdan erişmek istiyorum</div>
+          <div class="trouble-a"><code>.env</code> içinde <code>GRADIO_HOST=0.0.0.0</code> yap. Güvenlik için VPN veya reverse proxy kullan.</div>
+        </div>
+      </li>
+    </ul>
+  </section>
+
+  <div class="divider"></div>
+
+  <footer>
+    <div>
+      <div class="footer-brand">Yerli Dali AI Studio</div>
+      <div class="footer-sub">MIT License · 2025 Eren Öztürk</div>
+    </div>
+    <div style="display:flex; gap:20px; font-size:13px">
+      <a href="https://github.com/Eren-Oztk/yerli-dali-ai-studio">GitHub</a>
+      <a href="https://github.com/Eren-Oztk/yerli-dali-ai-studio/issues">Issues</a>
+      <a href="https://github.com/Eren-Oztk/yerli-dali-ai-studio/blob/main/README.md">Docs</a>
+    </div>
+  </footer>
+
+</div>
+
+<script>
+  const gpuTempEl = document.getElementById('gpuTemp');
+  const gpuVramEl = document.getElementById('gpuVram');
+
+  let currentTemp = 42;
+  let currentVram = 2.8;
+
+  // Gerçekçi Dalgalanma Döngüsü (Her 800ms'de bir güncellenir)
+  setInterval(() => {
+    // Rastgele ufak dalgalanma (Idle iken oynamalar)
+    let tempFluctuation = (Math.random() * 2 - 1); 
+    let vramFluctuation = (Math.random() * 0.2 - 0.1);
+
+    currentTemp += tempFluctuation * 0.4;
+    currentVram += vramFluctuation * 0.2;
+
+    // Minimum / Maksimum değer limitleri (Idle modunda tutuyoruz)
+    if(currentTemp < 38) currentTemp = 38 + Math.random();
+    if(currentTemp > 48) currentTemp = 48 - Math.random();
     
-    <div class="panel">
-      <div class="panel-title">
-        <span>Gradio Web UI</span>
-        <span style="font-size: 12px; color: var(--green);">● Port: 7860</span>
-      </div>
-      
-      <div class="image-preview mock-blur" id="imageDisplay">
-        <span style="z-index: 2; background: rgba(0,0,0,0.6); padding: 4px 8px; border-radius: 4px; display: none;" id="imageText">Düşük Çözünürlüklü Görsel</span>
-      </div>
+    if(currentVram < 2.0) currentVram = 2.0 + Math.random()*0.3;
+    if(currentVram > 3.5) currentVram = 3.5 - Math.random()*0.3;
 
-      <div class="controls">
-        <div class="control-group">
-          <label>Model</label>
-          <select id="modelSelect">
-            <option>realesrgan-x4plus</option>
-            <option>realesrgan-x4plus-anime</option>
-          </select>
-        </div>
-        <div class="control-group">
-          <label>GFPGAN (Yüz Onarımı)</label>
-          <select id="gfpganSelect"><option>Açık</option><option>Kapalı</option></select>
-        </div>
-        <div class="control-group">
-          <label>Film Grain Yoğunluğu: <span id="grainVal">0.10</span></label>
-          <input type="range" id="grainSlider" min="0" max="30" value="10" oninput="document.getElementById('grainVal').innerText = (this.value/100).toFixed(2)">
-        </div>
-        
-        <button class="btn" id="upscaleBtn" onclick="startProcess()">🚀 İşlemi Başlat</button>
-        
-        <div class="progress-bar" id="progBar"><div class="progress-fill" id="progFill"></div></div>
-      </div>
-    </div>
-
-    <div class="panel">
-      <div class="panel-title">
-        <span>Backend Terminal</span>
-        <span style="font-size: 12px; color: var(--muted);">Queue: <span id="queueCount" style="color: var(--yellow);">0/50</span></span>
-      </div>
-      <div class="terminal-body" id="termBody">
-        <div class="log-line sys">[SYSTEM] Yerli Dali AI Studio başlatıldı.</div>
-        <div class="log-line sys">[SYSTEM] CUDA 12.1 tespit edildi. NVIDIA GPU aktif.</div>
-        <div class="log-line sys">[SYSTEM] Telegram Bot polling başlatıldı...</div>
-        <div class="log-line sys">[SYSTEM] Gradio server http://127.0.0.1:7860 adresinde yayında.</div>
-      </div>
-    </div>
-
-  </div>
-
-  <script>
-    const term = document.getElementById('termBody');
-    const btn = document.getElementById('upscaleBtn');
-    const img = document.getElementById('imageDisplay');
-    const progBar = document.getElementById('progBar');
-    const progFill = document.getElementById('progFill');
-    const queueDisplay = document.getElementById('queueCount');
-    
-    // Hardware Monitör Elementleri
-    const gpuTempEl = document.getElementById('gpuTemp');
-    const gpuVramEl = document.getElementById('gpuVram');
-
-    let isProcessing = false;
-    let queue = 0;
-
-    // --- YENİ: Donanım Simülasyon Değişkenleri ---
-    let targetTemp = 42;
-    let currentTemp = 42;
-    let targetVram = 2.8;
-    let currentVram = 2.8;
-
-    // Gerçekçi Dalgalanma Döngüsü (Her 800ms'de bir güncellenir)
-    setInterval(() => {
-      // Rastgele dalgalanma (Idle iken ufak oynamalar)
-      let tempFluctuation = (Math.random() * 2 - 1); 
-      let vramFluctuation = (Math.random() * 0.2 - 0.1);
-
-      // Hedefe doğru yumuşak geçiş (Easing)
-      currentTemp += (targetTemp - currentTemp) * 0.15 + tempFluctuation * 0.2;
-      currentVram += (targetVram - currentVram) * 0.15 + vramFluctuation * 0.1;
-
-      // Minimum değer limitleri
-      if(currentTemp < 38) currentTemp = 38 + Math.random();
-      if(currentVram < 2.0) currentVram = 2.0 + Math.random()*0.3;
-
-      // Ekrana yazdırma
+    // Ekrana yazdırma
+    if(gpuTempEl && gpuVramEl) {
       gpuTempEl.innerText = Math.round(currentTemp);
       gpuVramEl.innerText = currentVram.toFixed(1);
 
-      // Renk uyarı sistemi
+      // Renk uyarı sistemi (Boşta olduğu için genelde yeşil kalacak)
       if (currentTemp >= 75) gpuTempEl.style.color = "var(--red)";
       else if (currentTemp >= 60) gpuTempEl.style.color = "var(--yellow)";
       else gpuTempEl.style.color = "var(--green)";
-    }, 800);
-
-
-    function log(msg, type = "info") {
-      const time = new Date().toLocaleTimeString('tr-TR');
-      const div = document.createElement('div');
-      div.className = `log-line ${type}`;
-      div.innerHTML = `<span class="sys">[${time}]</span> ${msg}`;
-      term.appendChild(div);
-      term.scrollTop = term.scrollHeight;
     }
+  }, 800);
+</script>
 
-    // Telegram rastgele istek simülasyonu
-    setInterval(() => {
-      if(Math.random() > 0.7 && !isProcessing) {
-        queue++;
-        queueDisplay.innerText = `${queue}/50`;
-        log(`Telegram'dan yeni görsel alındı. Kullanıcı ID: ${Math.floor(100000 + Math.random() * 900000)}`, "warn");
-        log(`Görev GPU kuyruğuna eklendi. (Sıra: ${queue})`, "info");
-      }
-    }, 6000);
-
-    function startProcess() {
-      if (isProcessing) return;
-      isProcessing = true;
-      btn.disabled = true;
-      btn.innerText = "İşleniyor...";
-      progBar.style.display = "block";
-      progFill.style.width = "0%";
-      img.className = "image-preview mock-blur";
-      
-      const model = document.getElementById('modelSelect').value;
-      const useGFPGAN = document.getElementById('gfpganSelect').value === "Açık";
-      const grain = document.getElementById('grainSlider').value / 100;
-
-      queue++;
-      queueDisplay.innerText = `${queue}/50`;
-
-      // Simülasyon Başlıyor - Donanımı Strese Sok!
-      targetTemp = 82; // Yük altında 82 dereceye tırmansın
-      targetVram = useGFPGAN ? 16.4 : 11.2; // GFPGAN varsa daha çok VRAM yer
-
-      setTimeout(() => { log(`Gradio üzerinden yeni istek: Model=${model}, GFPGAN=${useGFPGAN}, Grain=${grain}`, "hl"); }, 500);
-      setTimeout(() => { 
-        log(`GPU Kuyruğundan iş alınıyor... Kalan sıra: ${--queue}`, "sys"); 
-        queueDisplay.innerText = `${queue}/50`;
-        progFill.style.width = "20%"; 
-      }, 1500);
-      setTimeout(() => { log(`NCNN-Vulkan Motoru Başlatıldı. 4x Upscale yapılıyor...`, "info"); progFill.style.width = "50%"; }, 3000);
-      
-      let nextDelay = 4500;
-      if(useGFPGAN) {
-        setTimeout(() => { log(`GFPGANv1.4 ile yüz onarımı uygulanıyor...`, "warn"); progFill.style.width = "75%"; }, nextDelay);
-        nextDelay += 2000;
-      }
-      
-      if(grain > 0) {
-        setTimeout(() => { log(`Film Grain (${grain}) Gaussian gürültüsü ekleniyor...`, "info"); progFill.style.width = "90%"; }, nextDelay);
-        nextDelay += 1500;
-      }
-
-      setTimeout(() => { 
-        log(`İşlem tamamlandı. VRAM temizlendi. Çıktı Gradio'ya iletiliyor.`, "success"); 
-        progFill.style.width = "100%"; 
-        img.className = "image-preview mock-sharp";
-        
-        // İşlem Bitti - Donanımı Soğut
-        targetTemp = 42; 
-        targetVram = 2.8;
-
-        setTimeout(() => {
-          btn.disabled = false;
-          btn.innerText = "🚀 İşlemi Başlat";
-          progBar.style.display = "none";
-          isProcessing = false;
-        }, 1000);
-
-      }, nextDelay);
-    }
-  </script>
 </body>
 </html>
